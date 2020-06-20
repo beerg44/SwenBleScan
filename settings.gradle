@@ -1,0 +1,3 @@
+rootProject.name='Bluetooth'
+include ':app'
+include ':bluetoothseekandpost'
