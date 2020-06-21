@@ -16,27 +16,11 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class PermissionChecker extends AppCompatActivity {
 
-    private BluetoothAdapter btAdapter;
-    private BluetoothLeScanner btScanner;
-    private BluetoothManager btManager;
-
-    private final static int REQUEST_ENABLE_BT = 1;
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        //We init needed classes to check if bluetooth is enabled
-        btManager = (BluetoothManager)getSystemService(Context.BLUETOOTH_SERVICE);
-        btAdapter = btManager.getAdapter();
-        btScanner = btAdapter.getBluetoothLeScanner();
-
-        //If bluetooth is not enabled we show a alert so user can be notified and enable the bluetooth
-        if (btAdapter != null && !btAdapter.isEnabled()) {
-            Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableIntent,REQUEST_ENABLE_BT);
-        }
 
         //Checking needed permissions
         if (this.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -54,7 +38,17 @@ public class PermissionChecker extends AppCompatActivity {
         }
 
         if (this.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSION_REQUEST_COARSE_LOCATION);
+            final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("This app needs location access");
+            builder.setMessage("Please grant location access so this app can detect peripherals.");
+            builder.setPositiveButton(android.R.string.ok, null);
+            builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                @Override
+                public void onDismiss(DialogInterface dialog) {
+                    requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSION_REQUEST_COARSE_LOCATION);
+                }
+            });
+            builder.show();
         }else{
             finish();
         }

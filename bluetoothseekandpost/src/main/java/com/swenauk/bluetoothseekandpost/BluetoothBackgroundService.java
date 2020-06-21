@@ -5,10 +5,6 @@ import android.app.NotificationManager;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
-import android.bluetooth.le.AdvertiseCallback;
-import android.bluetooth.le.AdvertiseData;
-import android.bluetooth.le.AdvertiseSettings;
-import android.bluetooth.le.BluetoothLeAdvertiser;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
@@ -26,7 +22,6 @@ import android.os.Message;
 import android.os.ParcelUuid;
 import android.os.PowerManager;
 import android.os.Process;
-import android.util.Base64;
 import android.widget.Toast;
 
 import androidx.core.app.NotificationCompat;
@@ -47,9 +42,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class BluetoothBackgroundService extends Service {
     int calledCount;
@@ -63,6 +56,7 @@ public class BluetoothBackgroundService extends Service {
     private int notifcationCount;
     private BluetoothLeScanner btScanner;
     private Boolean isScanning;
+    private PowerManager.WakeLock wakeLock;
 
     //Creating a separate looper and handler for our background service
     private final class ServiceHandler extends Handler {
@@ -77,16 +71,22 @@ public class BluetoothBackgroundService extends Service {
                     //Sleeping the thread for 1 sec so we know approximately how many seconds has it been
                     Thread.sleep(1000);
 
+                    if ((wakeLock != null) && (!wakeLock.isHeld())) {  // but we don't hold it
+                        wakeLock.acquire();
+                    }
+
                     //Increase it every second to track time
                     calledCount++;
-
+                    System.out.println(calledCount);
                     //Every 10 seconds, starting from the 5th second of the run, we clear currentScan so we can get how many times we have interacted with this person in one scan.
                     if(calledCount % 10 == 5 && isScanning) {
                         currentScan.clear();
                     }
 
+
+
                     //Starting and stopping the scan every 100 seconds, starting from the 5th second of the run.
-                    if(calledCount % 100 == 5){
+                    if(calledCount % 180000 == 5){
                         try {
                             if(!isScanning) {
                                 startScanning();
@@ -137,21 +137,14 @@ public class BluetoothBackgroundService extends Service {
         try {
             JSONArray allMacs = new JSONArray();
 
-            /*for (String s : address.keySet()) {
-                System.out.println("Deneme");
+            for (String s : interaction.keySet()) {
                 JSONObject jsonObject = new JSONObject();
-                if(address.containsKey(s) && address.get(s) != null) {
-                    if (!address.get(s)) {
-                        jsonObject.put("Mac", s);
-                        address.put(s, true);
-                        allMacs.put(jsonObject);
-                    }
-                }
-            }*/
+                jsonObject.put("mac", s);
+            }
 
             JSONObject all = new JSONObject();
             all.put("All", allMacs);
-            System.out.println(all);
+
             String urlParameters  = "userID=1&mac=" + all.toString();
             byte[] postData       = urlParameters.getBytes( StandardCharsets.UTF_8);
             int    postDataLength = postData.length;
@@ -208,7 +201,7 @@ public class BluetoothBackgroundService extends Service {
 
         //Using wakeLock for location use in lock screen.
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
-        PowerManager.WakeLock wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
                 "bsap:wakeywakey");
 
         //Initializing bluetooth classes that are needed for scan.

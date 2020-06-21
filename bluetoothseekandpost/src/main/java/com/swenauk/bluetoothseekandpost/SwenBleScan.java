@@ -1,17 +1,22 @@
 package com.swenauk.bluetoothseekandpost;
 
 import android.Manifest;
+import android.app.Activity;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.AdvertiseCallback;
 import android.bluetooth.le.AdvertiseData;
 import android.bluetooth.le.AdvertiseSettings;
 import android.bluetooth.le.BluetoothLeAdvertiser;
+import android.bluetooth.le.BluetoothLeScanner;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.ParcelUuid;
 import android.util.Base64;
 
@@ -24,6 +29,10 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class SwenBleScan {
     private Context context;
+    private BluetoothAdapter btAdapter;
+    private BluetoothManager btManager;
+
+    private final static int REQUEST_ENABLE_BT = 1;
 
     public SwenBleScan(Context context) {
         this.context = context;
@@ -31,22 +40,62 @@ public class SwenBleScan {
 
     //Checking permissions before starting ble scan
     public void checkPermissions(){
-        Intent intent = new Intent(context, PermissionChecker.class);
+        final Intent intent = new Intent(context, PermissionChecker.class);
         this.context.startActivity(intent);
 
-        //We check continuously for permission and if it is granted we show the main activity. Not working for now.
-        /*while(true)
-        {
-            if(context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                    && context.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED){
-                System.out.println("No permission yet");
-            }else{
-                break;
-            }
-        }*/
+        //We check continuously for permission and if it is granted we show the main activity.
+        Thread r = new Thread() {
+            public void run() {
+                while(true)
+                {
+                    System.out.println("Deneme");
+                    if(context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                            && context.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED){
+                        System.out.println("No permission yet");
+                    }else{
+                        //startBleService();
+                        boolean start = bluetoothCheck();
+                        while (btAdapter != null && !btAdapter.isEnabled()){
+                            //System.out.println("Waiting bluetooth");
+                        }
 
-        //If Permission is granted we start BLE Service
-        startBleService();
+                        Handler mainHandler = new Handler(Looper.getMainLooper());
+                        Runnable myRunnable = new Runnable() {
+                            @Override
+                            public void run() {
+                                startBleService();
+                            }
+                        };
+                        mainHandler.post(myRunnable);
+                        break;
+                    }
+                }
+            }
+        };
+
+        r.start();
+    }
+
+    private boolean bluetoothCheck(){
+        //We init needed classes to check if bluetooth is enabled
+        btManager = (BluetoothManager)context.getSystemService(Context.BLUETOOTH_SERVICE);
+        btAdapter = btManager.getAdapter();
+
+        //If bluetooth is not enabled we show a alert so user can be notified and enable the bluetooth
+        if (btAdapter != null && !btAdapter.isEnabled()) {
+            Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            try {
+                if(context instanceof Activity) {
+                    Activity activity = (Activity) context;
+                    activity.startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
+                    return true;
+                }
+            }catch (Exception ignored){
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public void startBleService(){
