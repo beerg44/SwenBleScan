@@ -23,16 +23,44 @@ import android.util.Base64;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
+import java.net.URLEncoder;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class SwenBleScan {
     private Context context;
+    private boolean checkBlue;
+    private String advertiseID;
     private BluetoothAdapter btAdapter;
     private BluetoothManager btManager;
 
     private final static int REQUEST_ENABLE_BT = 1;
+
+    public SwenBleScan(Context context, boolean checkBlue, String advertiseID) {
+        //To be used for, starting background activity and other context functions.
+        this.context = context;
+
+        //If bluetooth enabling will be used.
+        this.checkBlue = checkBlue;
+
+        //If Service data is user provided. Can be 13 bytes at most. For example: ahmetumutkurn.
+        //Be careful with special chars, since they take up more space when utf-8 encoded. Recommended string length is 10.
+        this.advertiseID = advertiseID;
+
+        //We init needed objects to check if bluetooth is enabled
+        try {
+            btManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
+            btAdapter = btManager.getAdapter();
+        }catch (Exception ignored){
+
+        }
+    }
+
+    public SwenBleScan(Context context, boolean checkBlue) {
+        this.context = context;
+        this.checkBlue = checkBlue;
+    }
 
     public SwenBleScan(Context context) {
         this.context = context;
@@ -53,10 +81,16 @@ public class SwenBleScan {
                             && context.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED){
                         System.out.println("No permission yet");
                     }else{
-                        //startBleService();
-                        boolean start = bluetoothCheck();
+                        if(checkBlue){
+                            bluetoothCheck();
+                        }
+
                         while (btAdapter != null && !btAdapter.isEnabled()){
-                            //System.out.println("Waiting bluetooth");
+                            try {
+                                Thread.sleep(1000);
+                            }catch (Exception ignored){
+
+                            }
                         }
 
                         Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -77,10 +111,6 @@ public class SwenBleScan {
     }
 
     private boolean bluetoothCheck(){
-        //We init needed classes to check if bluetooth is enabled
-        btManager = (BluetoothManager)context.getSystemService(Context.BLUETOOTH_SERVICE);
-        btAdapter = btManager.getAdapter();
-
         //If bluetooth is not enabled we show a alert so user can be notified and enable the bluetooth
         if (btAdapter != null && !btAdapter.isEnabled()) {
             Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
@@ -122,10 +152,21 @@ public class SwenBleScan {
         ParcelUuid pUuid = new ParcelUuid(UUID.fromString("c2cad517-865a-4af1-acba-da65ff888cfb"));
 
         //This part creates a random string(which is unique for every device and doesn't change)
-        Random random = ThreadLocalRandom.current();
-        byte[] r = new byte[8];
-        random.nextBytes(r);
-        String s = Base64.encodeToString(r, Base64.DEFAULT);
+        String s = "";
+        if(advertiseID == null){
+            Random random = ThreadLocalRandom.current();
+            byte[] r = new byte[8];
+            random.nextBytes(r);
+            s = Base64.encodeToString(r, Base64.DEFAULT);
+        }else{
+            try{
+                s = URLEncoder.encode(advertiseID, "utf-8");
+                //System.out.println(s);
+            }catch (Exception e){
+                s = "Failed";
+            }
+        }
+
 
         //We show device's generated id as notification
         showDialog("Your id is " + s);

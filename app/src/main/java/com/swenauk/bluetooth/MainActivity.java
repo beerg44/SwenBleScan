@@ -17,7 +17,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         //We create the SwenBleScan object at the start of the main activity.
-        final SwenBleScan swenBleScan = new SwenBleScan(this);
+        final SwenBleScan swenBleScan = new SwenBleScan(this, false, "ahmetumutkurn");
 
         //We do permission checks. After permission checks completed BLE Scan and Advertise start automatically
         swenBleScan.checkPermissions();

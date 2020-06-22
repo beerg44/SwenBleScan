@@ -10,8 +10,10 @@ import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Handler;
@@ -22,6 +24,7 @@ import android.os.Message;
 import android.os.ParcelUuid;
 import android.os.PowerManager;
 import android.os.Process;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.core.app.NotificationCompat;
@@ -57,6 +60,7 @@ public class BluetoothBackgroundService extends Service {
     private BluetoothLeScanner btScanner;
     private Boolean isScanning;
     private PowerManager.WakeLock wakeLock;
+    private boolean canScan;
 
     //Creating a separate looper and handler for our background service
     private final class ServiceHandler extends Handler {
@@ -71,34 +75,44 @@ public class BluetoothBackgroundService extends Service {
                     //Sleeping the thread for 1 sec so we know approximately how many seconds has it been
                     Thread.sleep(1000);
 
-                    if ((wakeLock != null) && (!wakeLock.isHeld())) {  // but we don't hold it
-                        wakeLock.acquire();
+                    //Checking bluetooth availability.
+                    if(canScan) {
+                        if ((wakeLock != null) && (!wakeLock.isHeld())) {  // but we don't hold it
+                            wakeLock.acquire();
+                        }
+
+                        //Every 10 seconds, starting from the 5th second of the run, we clear currentScan so we can get how many times we have interacted with this person in one scan.
+                        if (calledCount % 10 == 5 && isScanning) {
+                            Thread thread = new Thread() {
+                                @Override
+                                public void run() {
+                                    getUrlContent("deneme");
+                                }
+                            };
+                            thread.start();
+                            currentScan.clear();
+                        }
+
+                        //Starting and stopping the scan every 100 seconds, starting from the 5th second of the run.
+                        if (calledCount % 180000 == 5) {
+                            try {
+                                if (!isScanning) {
+                                    startScanning();
+                                    isScanning = true;
+                                } else {
+                                    stopScanning();
+                                    isScanning = false;
+                                }
+                            } catch (Exception e) {
+                                System.out.println(e);
+                            }
+                        }
                     }
 
                     //Increase it every second to track time
                     calledCount++;
                     System.out.println(calledCount);
-                    //Every 10 seconds, starting from the 5th second of the run, we clear currentScan so we can get how many times we have interacted with this person in one scan.
-                    if(calledCount % 10 == 5 && isScanning) {
-                        currentScan.clear();
-                    }
 
-
-
-                    //Starting and stopping the scan every 100 seconds, starting from the 5th second of the run.
-                    if(calledCount % 180000 == 5){
-                        try {
-                            if(!isScanning) {
-                                startScanning();
-                                isScanning = true;
-                            }else {
-                                stopScanning();
-                                isScanning = false;
-                            }
-                        }catch (Exception e){
-                            System.out.println(e);
-                        }
-                    }
                 }
             } catch (Exception e) {
                 Thread.currentThread().interrupt();
@@ -135,15 +149,22 @@ public class BluetoothBackgroundService extends Service {
     //Used for post requests to server
     private String getUrlContent(String strUrl){
         try {
-            JSONArray allMacs = new JSONArray();
+            JSONObject all = new JSONObject();
+            all.put("affecting", "AhmetUmut");
+            JSONArray others = new JSONArray();
 
-            for (String s : interaction.keySet()) {
-                JSONObject jsonObject = new JSONObject();
-                jsonObject.put("mac", s);
+            if(!interaction.isEmpty()){
+                for(String s : interaction.keySet()){
+                    JSONObject one = new JSONObject();
+                    one.put("id", s);
+                    one.put("count", interaction.get(s));
+                    others.put(one);
+                }
             }
 
-            JSONObject all = new JSONObject();
-            all.put("All", allMacs);
+            all.put("affected", others);
+            Log.d("SwenBleScan", all.toString());
+            /*
 
             String urlParameters  = "userID=1&mac=" + all.toString();
             byte[] postData       = urlParameters.getBytes( StandardCharsets.UTF_8);
@@ -166,11 +187,12 @@ public class BluetoothBackgroundService extends Service {
             InputStream stream = connection.getInputStream();
 
             BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
-
+            */
             String line = "";
-
+            /*
             line = reader.readLine();
             System.out.println(line);
+            */
             return line;
         }catch (Exception e){
             System.out.println(e);
@@ -208,8 +230,36 @@ public class BluetoothBackgroundService extends Service {
         btManager = (BluetoothManager)getSystemService(Context.BLUETOOTH_SERVICE);
         btAdapter = btManager.getAdapter();
 
+        //We set canScan according to bluetooth availability.
+        canScan = btAdapter == null || btAdapter.isEnabled();
+
         btScanner = btAdapter.getBluetoothLeScanner();
+
+        IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
+        registerReceiver(mReceiver, filter);
     }
+
+    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            final String action = intent.getAction();
+
+            if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
+                final int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE,
+                        BluetoothAdapter.ERROR);
+                switch (state) {
+                    case BluetoothAdapter.STATE_TURNING_OFF:
+                        System.out.println("Bluetooth off");
+                        canScan = false;
+                        break;
+                    case BluetoothAdapter.STATE_ON:
+                        System.out.println("Bluetooth on");
+                        canScan = true;
+                        break;
+                }
+            }
+        }
+    };
 
     //This is where we start the background service finally.
     @Override
