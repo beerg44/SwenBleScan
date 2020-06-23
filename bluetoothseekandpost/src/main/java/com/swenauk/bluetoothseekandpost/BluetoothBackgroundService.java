@@ -60,6 +60,7 @@ public class BluetoothBackgroundService extends Service {
     private BluetoothLeScanner btScanner;
     private Boolean isScanning;
     private PowerManager.WakeLock wakeLock;
+    private boolean isPaused;
     private boolean canScan;
 
     //Creating a separate looper and handler for our background service
@@ -77,7 +78,8 @@ public class BluetoothBackgroundService extends Service {
 
                     //Checking bluetooth availability.
                     if(canScan) {
-                        if ((wakeLock != null) && (!wakeLock.isHeld())) {  // but we don't hold it
+                        System.out.println("Can scan");
+                        if ((wakeLock != null) && (!wakeLock.isHeld())) {
                             wakeLock.acquire();
                         }
 
@@ -94,7 +96,7 @@ public class BluetoothBackgroundService extends Service {
                         }
 
                         //Starting and stopping the scan every 100 seconds, starting from the 5th second of the run.
-                        if (calledCount % 180000 == 5) {
+                        if (calledCount % 180000 == 5 || isPaused) {
                             try {
                                 if (!isScanning) {
                                     startScanning();
@@ -103,6 +105,7 @@ public class BluetoothBackgroundService extends Service {
                                     stopScanning();
                                     isScanning = false;
                                 }
+                                isPaused = false;
                             } catch (Exception e) {
                                 System.out.println(e);
                             }
@@ -205,6 +208,7 @@ public class BluetoothBackgroundService extends Service {
         //We set isRunning true since we will be starting the thread. isScanning is always false at start since it will start at 5th second of the run.
         isRunning = true;
         isScanning = false;
+        isPaused = false;
 
         //We initialize the interaction and currentScan variables.
         //interaction -> keeps count of interaction between this device and other devices.
@@ -250,6 +254,8 @@ public class BluetoothBackgroundService extends Service {
                 switch (state) {
                     case BluetoothAdapter.STATE_TURNING_OFF:
                         System.out.println("Bluetooth off");
+                        isPaused = true;
+                        isScanning = false;
                         canScan = false;
                         break;
                     case BluetoothAdapter.STATE_ON:
