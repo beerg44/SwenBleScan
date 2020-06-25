@@ -199,18 +199,18 @@ public class SwenBleScan {
 
     //This is just a simple notification builder so we can see our results without the need of console.log
     private void showDialog(String s){
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "Deneme")
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "CoroWarnerChannel")
                 .setSmallIcon(R.drawable.ic_android_black_24dp)
-                .setContentTitle("Deneme Title")
+                .setContentTitle("CoroWarner")
                 .setContentText(s)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-            CharSequence name = "Deneme Name";
-            String description = "Deneme Description";
+            CharSequence name = "CoroWarner";
+            String description = "CoroWarner";
             int importance = NotificationManager.IMPORTANCE_DEFAULT;
-            NotificationChannel channel = new NotificationChannel("Deneme", name, importance);
+            NotificationChannel channel = new NotificationChannel("CoroWarnerChannel", name, importance);
             channel.setDescription(description);
             notificationManager = context.getSystemService(NotificationManager.class);
             notificationManager.createNotificationChannel(channel);
