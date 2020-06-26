@@ -1,5 +1,6 @@
 package com.swenauk.bluetoothseekandpost;
 
+import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
@@ -14,6 +15,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Handler;
@@ -27,6 +29,7 @@ import android.os.Process;
 import android.util.Log;
 import android.widget.Toast;
 
+import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
@@ -210,6 +213,18 @@ public class BluetoothBackgroundService extends Service {
         isScanning = false;
         isPaused = false;
 
+        String channelID = "";
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            channelID = getChannelID();
+        }
+
+        Notification notification = new NotificationCompat.Builder(this, channelID).setOngoing(true)
+                .setSmallIcon(R.drawable.ic_android_black_24dp)
+                .setPriority(NotificationManager.IMPORTANCE_HIGH)
+                .setCategory(Notification.CATEGORY_SERVICE)
+                .build();
+        startForeground(44, notification);
+
         //We initialize the interaction and currentScan variables.
         //interaction -> keeps count of interaction between this device and other devices.
         //currentScan -> keeps interaction with in 10 seconds intervals.
@@ -314,6 +329,16 @@ public class BluetoothBackgroundService extends Service {
         }
     };
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    private String getChannelID(){
+        NotificationChannel chan = new NotificationChannel("corowarnerService", "corowarnerBackService", NotificationManager.IMPORTANCE_HIGH);
+        chan.setLightColor(Color.BLUE);
+        chan.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.createNotificationChannel(chan);
+        return "corowarnerService";
+    }
+
     public void startScanning() {
         System.out.println("start scanning");
 
@@ -350,6 +375,6 @@ public class BluetoothBackgroundService extends Service {
     //On destroy we stop is running so it doesn't keep on going for now.
     @Override
     public void onDestroy() {
-        isRunning = false;
+        //isRunning = false;
     }
 }

@@ -143,7 +143,7 @@ public class SwenBleScan {
         //AdvertiseSettings are set here. AdvertiseMode and TxPowerLevel info can be found on: https://medium.com/@martijn.van.welie/making-android-ble-work-part-1-a736dcd53b02
         //Info is under the title -> Defining your ScanSettings
         AdvertiseSettings settings = new AdvertiseSettings.Builder()
-                .setAdvertiseMode( AdvertiseSettings.ADVERTISE_MODE_BALANCED )
+                .setAdvertiseMode( AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY )
                 .setTxPowerLevel( AdvertiseSettings.ADVERTISE_TX_POWER_MEDIUM )
                 .setConnectable( false )
                 .build();
