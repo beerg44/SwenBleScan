@@ -213,6 +213,7 @@ public class BluetoothBackgroundService extends Service {
         isScanning = false;
         isPaused = false;
 
+        // !!!!!!
         String channelID = "";
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             channelID = getChannelID();
@@ -329,6 +330,7 @@ public class BluetoothBackgroundService extends Service {
         }
     };
 
+    // !!!!!!
     @RequiresApi(api = Build.VERSION_CODES.O)
     private String getChannelID(){
         NotificationChannel chan = new NotificationChannel("corowarnerService", "corowarnerBackService", NotificationManager.IMPORTANCE_HIGH);
