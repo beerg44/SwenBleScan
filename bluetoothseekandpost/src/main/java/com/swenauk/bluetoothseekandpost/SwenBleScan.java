@@ -53,17 +53,34 @@ public class SwenBleScan {
             btManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
             btAdapter = btManager.getAdapter();
         }catch (Exception ignored){
-
+            System.out.println(ignored);
         }
     }
 
     public SwenBleScan(Context context, boolean checkBlue) {
         this.context = context;
         this.checkBlue = checkBlue;
+
+        //We init needed objects to check if bluetooth is enabled
+        try {
+            btManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
+            btAdapter = btManager.getAdapter();
+        }catch (Exception ignored){
+            System.out.println(ignored);
+        }
     }
 
     public SwenBleScan(Context context) {
         this.context = context;
+        this.checkBlue = false;
+        
+        //We init needed objects to check if bluetooth is enabled
+        try {
+            btManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
+            btAdapter = btManager.getAdapter();
+        }catch (Exception ignored){
+            System.out.println(ignored);
+        }
     }
 
     //Checking permissions before starting ble scan

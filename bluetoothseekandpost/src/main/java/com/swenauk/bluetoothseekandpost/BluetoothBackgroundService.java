@@ -224,7 +224,6 @@ public class BluetoothBackgroundService extends Service {
                 .setPriority(NotificationManager.IMPORTANCE_HIGH)
                 .setCategory(Notification.CATEGORY_SERVICE)
                 .build();
-        startForeground(44, notification);
 
         //We initialize the interaction and currentScan variables.
         //interaction -> keeps count of interaction between this device and other devices.
@@ -257,6 +256,8 @@ public class BluetoothBackgroundService extends Service {
 
         IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
         registerReceiver(mReceiver, filter);
+
+        startForeground(44, notification);
     }
 
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
@@ -377,6 +378,6 @@ public class BluetoothBackgroundService extends Service {
     //On destroy we stop is running so it doesn't keep on going for now.
     @Override
     public void onDestroy() {
-        //isRunning = false;
+        isRunning = false;
     }
 }
